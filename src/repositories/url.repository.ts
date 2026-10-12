@@ -49,27 +49,22 @@ export class UrlRepository {
   }
 
   async updateClicks(shortUrl: string) {
-    
-    const url = await Url.findOneAndUpdate(
-      { shortUrl },
-      { $inc: { clicks: 1 } },
-      { new: true },
-    );
+    const url = await Url.findOneAndUpdate({ shortUrl }, { $inc: { clicks: 1 } }, { new: true });
 
     return;
   }
 
-  async findStatsbyShortUrl(shortUrl: string) : Promise<UrlStats | null> {
-        const url = await Url.findOne({ shortUrl });
-        if (!url) return null;
+  async findStatsbyShortUrl(shortUrl: string): Promise<UrlStats | null> {
+    const url = await Url.findOne({ shortUrl });
+    if (!url) return null;
 
-        return {
-          id: url._id?.toString() || '',
-          originalUrl: url.originalUrl,
-          shortUrl: url.shortUrl,
-          clicks: url.clicks,
-          createdAt: url.createdAt,
-          updatedAt: url.updatedAt,
-        };
+    return {
+      id: url._id?.toString() || '',
+      originalUrl: url.originalUrl,
+      shortUrl: url.shortUrl,
+      clicks: url.clicks,
+      createdAt: url.createdAt,
+      updatedAt: url.updatedAt,
+    };
   }
 }
