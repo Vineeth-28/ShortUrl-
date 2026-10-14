@@ -1,0 +1,150 @@
+{
+  "info": {
+    "name": "URL Shortener API",
+    "description": "Postman requests for creating and resolving URLs through the tRPC API.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3004"
+    },
+    {
+      "key": "shortCode",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Create short URL (valid)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const response = pm.response.json();",
+              "const shortCode = response.result && response.result.data && response.result.data.shortUrl;",
+              "pm.test('Returns a short code', function () { pm.expect(shortCode).to.be.a('string').and.not.empty; });",
+              "if (shortCode) pm.collectionVariables.set('shortCode', shortCode);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"originalUrl\": \"https://example.com/postman-test\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/trpc/url.create",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "trpc",
+            "url.create"
+          ]
+        },
+        "description": "Creates a short URL. Saves the returned short code for the lookup request."
+      },
+      "response": []
+    },
+    {
+      "name": "Get original URL by short code",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns HTTP 200', function () { pm.response.to.have.status(200); });",
+              "const response = pm.response.json();",
+              "pm.test('Returns the original URL', function () { pm.expect(response.result.data.originalUrl).to.eql('https://example.com/postman-test'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/trpc/url.getOriginalUrl?input=%7B%22shortUrl%22%3A%22{{shortCode}}%22%7D",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "trpc",
+            "url.getOriginalUrl"
+          ],
+          "query": [
+            {
+              "key": "input",
+              "value": "%7B%22shortUrl%22%3A%22{{shortCode}}%22%7D"
+            }
+          ]
+        },
+        "description": "Looks up the short code stored by the preceding create request."
+      },
+      "response": []
+    },
+    {
+      "name": "Create short URL (invalid URL)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Returns HTTP 400 for an invalid URL', function () { pm.response.to.have.status(400); });",
+              "pm.test('Response reports a validation error', function () { pm.expect(pm.response.text()).to.include('Invalid URL'); });"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"originalUrl\": \"not a valid URL\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/trpc/url.create",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "trpc",
+            "url.create"
+          ]
+        },
+        "description": "Checks that URL validation rejects malformed input."
+      },
+      "response": []
+    }
+  ]
+}

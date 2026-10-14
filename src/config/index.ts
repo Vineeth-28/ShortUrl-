@@ -6,6 +6,7 @@ type serverConfig = {
   MONGO_URL: number;
   REDIS_URL?: string;
   REDIS_COUNTER_KEY: string;
+  BASEURL?: string;
 };
 
 function loadenv() {
@@ -20,4 +21,5 @@ export const serverConfig: serverConfig = {
   MONGO_URL: process.env.MONGO_URL ? parseInt(process.env.MONGO_URL, 10) : 27017,
   REDIS_URL: process.env.REDIS_URL || 'redis://localhost:6379',
   REDIS_COUNTER_KEY: process.env.REDIS_COUNTER_KEY || 'url_shornter_counter',
+  BASEURL: process.env.BASE_URL || 'shortner.com',
 };

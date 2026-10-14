@@ -1,174 +1,224 @@
 # URL Shortener API
 
-A TypeScript backend starter for a URL shortener, built with Express. Redis and
-tRPC are included in the dependency stack for the planned URL storage and
-type-safe API, alongside request validation, correlation IDs, and structured
-logging.
+A URL-shortening backend built with **TypeScript**, **Express**, **tRPC**,
+**MongoDB**, and **Redis**. The API validates submitted URLs, creates compact
+Base62 short codes, stores URL records in MongoDB, and uses Redis for ID
+generation and URL-mapping cache.
 
-> **Status:** This repository is still a scaffold. The current server exposes
-> ping and health-check routes; Redis is not connected and no tRPC router or
-> URL-shortening procedures have been implemented yet. The README distinguishes
-> the current behavior from the intended stack so setup instructions stay
-> accurate.
+## Highlights
 
----
+- Create short links using a validated tRPC mutation.
+- Resolve short codes using a tRPC query.
+- Generate compact Base62 codes from an atomic Redis counter.
+- Persist URL records in MongoDB with Mongoose.
+- Validate procedure inputs with Zod.
+- Add request correlation IDs and structured logging with Winston.
+- Test the API with the included Postman collection.
 
-## Features and current status
+## Technology
 
-- ⚡ **Express 5 + TypeScript** — HTTP server and TypeScript source
-- 🔢 **Versioned routes** — Express routers mounted under `/api/v1` and `/api/v2`
-- ✅ **Zod validation** — request-body schema used by the ping route
-- 🔍 **Request correlation IDs** — each request receives a UUID used by the logger
-- 📝 **Winston logging** — console, daily-rotating file, and MongoDB transports
-- 🔴 **Redis** — `redis` package is installed; connection and URL storage are not
-  wired up yet
-- 🔗 **tRPC** — `@trpc/server` is installed; router, adapter, and procedures are
-  not wired up yet
-- 🎨 **Prettier** — formatting scripts for TypeScript source
-- 🔄 **Nodemon** — restarts the development server when files change
-
-### Planned URL-shortener API
-
-The intended application can use tRPC procedures to create and resolve short
-links, with Redis storing the short-code-to-destination mapping. These
-procedures and the Redis integration are not available in the current code yet.
-
----
-
-## Tech stack
-
-| Category | Technology |
-|---|---|
-| Language | TypeScript |
-| Runtime | Node.js |
-| HTTP framework | Express 5 |
-| RPC server | tRPC (`@trpc/server`, integration pending) |
-| URL storage | Redis (`redis`, integration pending) |
-| Validation | Zod |
-| Logging | Winston, daily-rotate-file, winston-mongodb |
-| Dev tools | Nodemon, ts-node, tsx, Prettier |
-
----
-
-## Project structure
-
-```text
-.
-├── src/
-│   ├── config/             # Server configuration and logger
-│   ├── controllers/        # Ping controller
-│   ├── middlewares/        # Error handling and request correlation
-│   ├── routes/
-│   │   ├── v1/             # Ping routes
-│   │   └── v2/             # Empty route namespace
-│   ├── utils/              # Errors and request-context helpers
-│   ├── validators/         # Ping request schema
-│   └── server.ts           # Express entry point
-├── logs/                   # Runtime log files
-├── package.json
-├── tsconfig.json
-└── README.md
-```
-
----
+| Area               | Technology                                       |
+| ------------------ | ------------------------------------------------ |
+| Language           | TypeScript                                       |
+| HTTP server        | Express 5                                        |
+| API                | tRPC                                             |
+| Validation         | Zod                                              |
+| Persistent storage | MongoDB and Mongoose                             |
+| Counter and cache  | Redis                                            |
+| Logging            | Winston, daily rotating files, MongoDB transport |
 
 ## Requirements
 
-- Node.js 18 or newer
+- Node.js 20+
 - npm
-- MongoDB is optional for startup, but the Winston MongoDB transport defaults
-  to `mongodb://localhost:27017/urlshortnerlog` when `MONGODB_URI` is not set
-- Redis is not required by the current scaffold; it will be needed once the
-  planned Redis integration is implemented
+- MongoDB
+- Redis
 
----
+The default local configuration expects MongoDB at
+`mongodb://localhost:27017/urlshortner` and Redis at `redis://localhost:6379`.
+The MongoDB logger transport uses the `urlshortnerlog` database by default.
 
-## Quick start
+## Getting started
 
 ```bash
-git clone <your-repository-url>
-cd <your-repository-directory>
+git clone https://github.com/<your-github-username>/<your-repository>.git
+cd <your-repository>
 npm install
+```
+
+Configure the following environment variables for your environment:
+
+| Variable            | Default                                    | Purpose                              |
+| ------------------- | ------------------------------------------ | ------------------------------------ |
+| `PORT`              | `3004`                                     | HTTP server port                     |
+| `MONGO_URI`         | `mongodb://localhost:27017/urlshortner`    | URL database connection              |
+| `MONGO_URL`         | `mongodb://localhost:27017/urlshortnerlog` | MongoDB log transport connection     |
+| `REDIS_URL`         | `redis://localhost:6379`                   | Redis connection                     |
+| `REDIS_COUNTER_KEY` | `url_shornter_counter`                     | Redis key for the short-code counter |
+| `BASE_URL`          | `shortner.com`                             | Configured public base URL           |
+
+Start the development server:
+
+```bash
 npm run dev
 ```
 
-The server listens on `http://localhost:3004` by default. Set `PORT` in the
-process environment to use a different port.
+By default, the API is available at `http://localhost:3004`. Start MongoDB and
+Redis before creating URLs. Use your deployment's environment-variable settings
+for hosted services; do not commit credentials or private connection strings.
 
-There is no committed `.env.example` file at this time. The current server reads
-`PORT` from the process environment. The logger reads `MONGODB_URI` and falls
-back to its local MongoDB URL if it is unset. Redis configuration is not
-implemented yet.
+## API reference
 
----
+The tRPC Express adapter is mounted at `/trpc`.
 
-## Current endpoints
+### Create a short URL
 
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/v1/ping/health` | Health check; responds with `OK` |
-| `GET` | `/api/v1/ping` | Ping endpoint; validates a body containing a non-empty `message` |
+**Procedure:** `url.create`  
+**Method:** `POST`  
+**Endpoint:** `http://localhost:3004/trpc/url.create`
 
-The `/api/v2` namespace is mounted but currently has no routes. There are no
-short-link creation or redirect endpoints yet.
+Send the procedure input as JSON:
 
----
+```json
+{
+  "originalUrl": "https://example.com/articles/getting-started"
+}
+```
 
-## Available scripts
+Example:
 
-| Script | Command | Purpose |
-|---|---|---|
-| `npm run dev` | `npx nodemon src/server.ts` | Start the development server |
-| `npm run build` | `tsc` | Compile TypeScript into `dist/` |
-| `npm start` | `node dist/server,js` | Start the compiled server (**currently has a typo; see note below**) |
-| `npm run format` | `prettier --write "src/**/*.ts"` | Format TypeScript source |
-| `npm run format:check` | `prettier --check "src/**/*.ts"` | Check TypeScript formatting |
-| `npm test` | — | Not configured yet |
+```bash
+curl -X POST http://localhost:3004/trpc/url.create \
+  -H "Content-Type: application/json" \
+  -d '{"originalUrl":"https://example.com/articles/getting-started"}'
+```
 
-> **Production start script:** `package.json` currently uses
-> `node dist/server,js`. The comma is a typo; change it to
-> `node dist/server.js` before using `npm start`.
+Successful response (`200 OK`):
 
----
+```json
+{
+  "result": {
+    "data": {
+      "id": "65a000000000000000000000",
+      "shortUrl": "1",
+      "originalUrl": "https://example.com/articles/getting-started",
+      "createdAt": "2026-01-01T12:00:00.000Z",
+      "updatedAt": "2026-01-01T12:00:00.000Z"
+    }
+  }
+}
+```
 
-## Logging and request tracing
+The returned `shortUrl` is the short code. Use it as input to the lookup
+procedure.
 
-Winston is configured to write logs to:
+### Look up the original URL
 
-1. The console.
-2. Daily rotating files under `logs/` (up to 20 MB per file, retained for
-   14 days).
-3. A MongoDB collection named `logs`, using `MONGODB_URI` or the local fallback.
+**Procedure:** `url.getOriginalUrl`  
+**Method:** `GET`  
+**Endpoint:** `http://localhost:3004/trpc/url.getOriginalUrl`
 
-The correlation middleware assigns a UUID to each request. The logger includes
-the correlation ID in its structured log output.
+The `input` query parameter is JSON containing the short code. For example, to
+look up code `1`:
 
----
+```text
+http://localhost:3004/trpc/url.getOriginalUrl?input=%7B%22shortUrl%22%3A%221%22%7D
+```
 
-## Building for production
+Example with curl:
+
+```bash
+curl --get http://localhost:3004/trpc/url.getOriginalUrl \
+  --data-urlencode 'input={"shortUrl":"1"}'
+```
+
+Successful response (`200 OK`):
+
+```json
+{
+  "result": {
+    "data": {
+      "originalUrl": "https://example.com/articles/getting-started",
+      "shortUrl": "1"
+    }
+  }
+}
+```
+
+### Validation errors
+
+`url.create` requires a valid absolute URL. Invalid input returns `400 Bad
+Request` with a Zod validation error:
+
+```json
+{
+  "originalUrl": "not a valid URL"
+}
+```
+
+### Ping and health routes
+
+| Method | Path                  | Description                                                                     |
+| ------ | --------------------- | ------------------------------------------------------------------------------- |
+| `GET`  | `/api/v1/ping/health` | Returns `OK` when the server responds                                           |
+| `GET`  | `/api/v1/ping`        | Ping route; currently validates a request body containing a non-empty `message` |
+
+## Postman
+
+Import [`postman/URL-Shortener.postman_collection.json`](./postman/URL-Shortener.postman_collection.json)
+into Postman. The collection includes:
+
+1. A valid URL creation request.
+2. A lookup request that uses the short code saved by the create request.
+3. An invalid URL request to check validation behavior.
+
+The collection's `baseUrl` variable defaults to `http://localhost:3004`.
+
+## Development scripts
+
+| Command                | Description                                 |
+| ---------------------- | ------------------------------------------- |
+| `npm run dev`          | Run the TypeScript server using Nodemon     |
+| `npm run build`        | Compile TypeScript from `src/` into `dist/` |
+| `npm run format`       | Format TypeScript files with Prettier       |
+| `npm run format:check` | Check TypeScript formatting                 |
+
+Build the application with:
 
 ```bash
 npm run build
 ```
 
-This compiles the TypeScript in `src/` to `dist/`. After correcting the `start`
-script typo in `package.json`, run the compiled server with:
+To run the generated entry point directly:
 
 ```bash
-npm start
+node dist/server.js
 ```
 
----
+> **Note:** The current `npm start` script references `dist/server,js` (comma)
+> rather than `dist/server.js` (period). Until that script is corrected, use
+> `node dist/server.js` to start the compiled application.
 
-## Next steps
+Automated tests are not configured yet; `npm test` is currently a placeholder.
 
-- Configure and connect a Redis client.
-- Add tRPC initialization, an Express adapter, and typed procedures.
-- Implement short-link creation, lookup, and redirect behavior.
-- Add environment validation and document Redis connection settings.
-- Add tests for URL creation, lookup, validation, and error handling.
+## Project structure
 
----
+```text
+src/
+├── config/          # Application, database, Redis, and logger configuration
+├── controllers/     # Ping and URL handlers
+├── dtos/            # URL data transfer types
+├── middlewares/     # Error handling and request correlation
+├── models/          # Mongoose URL model
+├── repositories/    # MongoDB and Redis data access
+├── routes/          # tRPC and versioned Express routes
+├── service/         # URL shortening and lookup logic
+├── utils/           # Base62 conversion and shared errors/helpers
+└── validators/      # Request schemas
+
+postman/
+└── URL-Shortener.postman_collection.json
+```
 
 ## License
 
